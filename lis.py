@@ -3,7 +3,10 @@
 Symbol = str
 List = list
 Number = (int, float)
-Env = dict
+
+
+def parse(program):
+    return read_from_tokens(tokenize(program))
 
 
 def tokenize(chars):
@@ -34,10 +37,6 @@ def atom(token):
             return float(token)
         except ValueError:
             return Symbol(token)
-
-
-def parse(program):
-    return read_from_tokens(tokenize(program))
 
 
 def standard_env():
@@ -80,12 +79,51 @@ def standard_env():
     return env
 
 
+class Env(dict):
+    def __init__(self, parms=(), args=(), outer=None):
+        self.update(zip(parms, args))
+        self.outer = outer
+
+    def find(self, var):
+        if var in self:
+            return self
+        else:
+            return self.outer.find(var)
+
+
 global_env = standard_env()
+
+
+def repl(prompt="lis.py> "):
+    while True:
+        try:
+            val = eval(parse(raw_input(prompt)))
+            if val is not None:
+                print(schemestr(val))
+        except Exception as e:
+            print "ERROR: " + e.message
+
+
+def schemestr(exp):
+    if isinstance(exp, list):
+        return "(" + " ".join(map(schemestr, exp)) + ")"
+    else:
+        return str(exp)
+
+
+class Procedure(object):
+    def __init__(self, parms, body, env):
+        self.parms = parms
+        self.body = body
+        self.env = env
+
+    def __call__(self, *args):
+        return eval(self.body, Env(self.parms, args, self.env))
 
 
 def eval(x, env=global_env):
     if isinstance(x, Symbol):
-        return env[x]
+        return env.find(x)[x]
     elif not isinstance(x, List):
         return x
     elif x[0] == "quote":
@@ -98,24 +136,16 @@ def eval(x, env=global_env):
     elif x[0] == "define":
         (_, var, exp) = x
         env[var] = eval(exp, env)
+    elif x[0] == "set!":
+        (_, var, exp) = x
+        env.find(var)[var] = eval(exp, env)
+    elif x[0] == "lambda":
+        (_, parms, body) = x
+        return Procedure(parms, body, env)
     else:
         proc = eval(x[0], env)
         args = [eval(arg, env) for arg in x[1:]]
         return proc(*args)
-
-
-def schemestr(exp):
-    if isinstance(exp, list):
-        return "(" + " ".join(map(schemestr, exp)) + ")"
-    else:
-        return str(exp)
-
-
-def repl(prompt="lis.py> "):
-    while True:
-        val = eval(parse(raw_input(prompt)))
-        if val is not None:
-            print(schemestr(val))
 
 
 repl()
