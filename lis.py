@@ -101,7 +101,7 @@ def repl(prompt="lis.py> "):
             if val is not None:
                 print(schemestr(val))
         except Exception as e:
-            print "ERROR: " + e.message
+            print "ERROR: " + str(e.message)
 
 
 def schemestr(exp):
@@ -129,6 +129,9 @@ def eval(x, env=global_env):
     elif x[0] == "quote":
         (_, exp) = x
         return exp
+    elif x[0] == "display":
+        (_, exp) = x
+        return env[exp] if (exp in env) else exp
     elif x[0] == "if":
         (_, test, conseq, alt) = x
         exp = (conseq if eval(test, env) else alt)
