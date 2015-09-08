@@ -131,7 +131,10 @@ def eval(x, env=global_env):
         return exp
     elif x[0] == "display":
         (_, exp) = x
-        return env[exp] if (exp in env) else exp
+        try:
+            return env[exp] if (exp in env) else exp
+        except TypeError:
+            return eval(exp)
     elif x[0] == "if":
         (_, test, conseq, alt) = x
         exp = (conseq if eval(test, env) else alt)
